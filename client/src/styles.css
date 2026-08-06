@@ -365,6 +365,31 @@ input[type='range'] {
   margin: 6px 0 16px;
 }
 
+.traits {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trait-line {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.trait-label {
+  font-weight: 700;
+}
+
+.trait-label.good {
+  color: var(--good);
+}
+
+.trait-label.bad {
+  color: var(--bad);
+}
+
 .tag-row {
   display: flex;
   gap: 6px;
@@ -416,6 +441,9 @@ input[type='range'] {
 
 .stat-bar-fill.power {
   background: linear-gradient(90deg, #f97316, #ef4444);
+}
+.stat-bar-fill.toughness {
+  background: linear-gradient(90deg, #64748b, #94a3b8);
 }
 .stat-bar-fill.speed {
   background: linear-gradient(90deg, #06b6d4, #3b82f6);

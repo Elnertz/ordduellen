@@ -57,8 +57,10 @@ describe('judge — general behaviour', () => {
   it('always returns a Swedish explanation and confidence', () => {
     const r = duel('Missil', 'Asteroid');
     expect(r.explanation.length).toBeGreaterThan(10);
+    expect(r.reason).toBe(r.explanation);
     expect(r.confidence).toBeGreaterThan(0);
-    expect(r.confidence).toBeLessThanOrEqual(1);
+    expect(r.confidence).toBeLessThanOrEqual(100);
+    expect(r.approved).toBe(r.verdict === 'approved');
     expect(r.reasons.length).toBeGreaterThan(0);
   });
 

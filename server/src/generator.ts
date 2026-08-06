@@ -3,8 +3,31 @@
 // category profile and (2) multiplying suitable seeds with themed variants.
 
 import type { Entry } from './types.js';
-import { computeDefeatsTags, computeVulnerableTags } from './taxonomy.js';
+import {
+  abilitiesFromTags,
+  computeDefeatsTags,
+  computeVulnerableTags,
+  weaknessesFromTags,
+} from './taxonomy.js';
 import { SEED_CATEGORIES, type CategoryProfile, type Seed, type VariantGroup } from './data/seeds.js';
+
+// Default physical size (0–100) and technology level (0–100) per category, used
+// when a seed does not specify them explicitly.
+const CATEGORY_SIZE: Record<string, number> = {
+  animals: 30, weapons: 22, military: 60, technology: 28, vehicles: 55, nature: 70,
+  weather: 65, space: 92, elements: 8, science: 30, medicine: 12, diseases: 4,
+  plants: 30, buildings: 70, places: 90, history: 30, mythology: 55, fantasy: 50,
+  magic: 25, heroes: 32, villains: 40, pokemon: 35, food: 8, professions: 30,
+  sports: 30, music: 15, internet: 5, materials: 25, energy: 30, concepts: 80, cosmic: 95,
+};
+
+const CATEGORY_TECH: Record<string, number> = {
+  animals: 0, weapons: 45, military: 75, technology: 92, vehicles: 60, nature: 0,
+  weather: 0, space: 5, elements: 5, science: 60, medicine: 65, diseases: 0,
+  plants: 0, buildings: 40, places: 40, history: 20, mythology: 5, fantasy: 15,
+  magic: 10, heroes: 55, villains: 55, pokemon: 20, food: 5, professions: 40,
+  sports: 20, music: 25, internet: 85, materials: 30, energy: 55, concepts: 20, cosmic: 60,
+};
 
 interface VariantMod {
   id: string;
@@ -84,24 +107,38 @@ function finalizeTags(tags: string[]): { defeatsTags: string[]; vulnerableToTags
   };
 }
 
-function buildBaseEntry(seed: Seed, profile: CategoryProfile, index: number): Entry {
+function buildBaseEntry(seed: Seed, profile: CategoryProfile, index: number, source: string): Entry {
   const tags = [...new Set([...profile.baseTags, ...(seed.tags ?? [])])];
   const flavor = pick(profile.flavor, seed.name.length + index).replace('{name}', seed.name);
   const { defeatsTags, vulnerableToTags } = finalizeTags(tags);
+  const power = clamp(seed.power ?? profile.stats.power);
+  const scale = clamp(seed.scale ?? profile.scale);
+  const size = clamp(seed.size ?? CATEGORY_SIZE[profile.category] ?? 30);
+  const abilities = [...new Set([...(seed.abilities ?? []), ...abilitiesFromTags(tags)])];
   return {
     id: '',
     name: seed.name,
+    englishName: seed.englishName,
     aliases: seed.aliases ?? [],
+    aliasesEn: seed.aliasesEn,
     categories: [profile.category],
-    power: clamp(seed.power ?? profile.stats.power),
+    power,
+    toughness: clamp(seed.toughness ?? Math.round(power * 0.55 + size * 0.25 + 12)),
     speed: clamp(seed.speed ?? profile.stats.speed),
     range: clamp(seed.range ?? profile.stats.range),
     intelligence: clamp(seed.intelligence ?? profile.stats.intelligence),
+    size,
+    techLevel: clamp(seed.techLevel ?? CATEGORY_TECH[profile.category] ?? 10),
+    cosmicLevel: scale,
     tags,
     defeatsTags,
     vulnerableToTags,
+    abilities,
+    weaknesses: weaknessesFromTags(vulnerableToTags),
     description: flavor,
-    scale: clamp(seed.scale ?? profile.scale),
+    scale,
+    source,
+    quality: 'verified',
     curated: true,
   };
 }
@@ -116,20 +153,33 @@ function buildVariant(base: Entry, mod: VariantMod): Entry {
   const name = mod.prefix + base.name.toLowerCase();
   const tags = [...new Set([...base.tags, ...mod.addTags])];
   const { defeatsTags, vulnerableToTags } = finalizeTags(tags);
+  const scale = clamp(base.scale + (mod.scale ?? 0));
+  // Variants that add tech/cosmic/size tags shift those dimensions too.
+  const sizeDelta = mod.addTags.includes('giant') ? 22 : mod.addTags.includes('tiny') ? -22 : 0;
+  const techDelta = mod.addTags.some((t) => ['robot', 'technology', 'electronic', 'ai'].includes(t)) ? 30 : 0;
+  const power = clamp(base.power + (mod.power ?? 0));
   return {
     id: '',
     name,
     aliases: [],
     categories: base.categories,
-    power: clamp(base.power + (mod.power ?? 0)),
+    power,
+    toughness: clamp(base.toughness + Math.round((mod.power ?? 0) * 0.4)),
     speed: clamp(base.speed + (mod.speed ?? 0)),
     range: clamp(base.range + (mod.range ?? 0)),
     intelligence: clamp(base.intelligence + (mod.intelligence ?? 0)),
+    size: clamp(base.size + sizeDelta),
+    techLevel: clamp(base.techLevel + techDelta),
+    cosmicLevel: scale,
     tags,
     defeatsTags,
     vulnerableToTags,
+    abilities: abilitiesFromTags(tags),
+    weaknesses: weaknessesFromTags(vulnerableToTags),
     description: `${name} är ${mod.desc} av ${base.name.toLowerCase()}.`,
-    scale: clamp(base.scale + (mod.scale ?? 0)),
+    scale,
+    source: 'variants',
+    quality: 'generated',
     curated: false,
   };
 }
@@ -165,9 +215,9 @@ export function generateExtra(count: number, taken: Set<string>): Entry[] {
     attempts += 1;
     const { seed, profile } = singleWordBases[Math.floor(Math.random() * singleWordBases.length)];
     const mod = EXTRA_MODS[Math.floor(Math.random() * EXTRA_MODS.length)];
-    const base = buildBaseEntry(seed, profile, attempts);
+    const base = buildBaseEntry(seed, profile, attempts, 'core');
     const variant = buildVariant(base, mod);
-    variant.curated = true;
+    variant.source = 'admin-generated';
     const key = normalizeName(variant.name);
     if (localTaken.has(key)) continue;
     localTaken.add(key);
@@ -201,9 +251,11 @@ export function generateEntries(): Entry[] {
 
   // Pass 1: base entries.
   const bases: Array<{ entry: Entry; profile: CategoryProfile }> = [];
-  for (const { profile, items } of SEED_CATEGORIES) {
+  for (const category of SEED_CATEGORIES) {
+    const { profile, items } = category;
+    const source = category.source ?? 'core';
     items.forEach((seed, index) => {
-      const entry = buildBaseEntry(seed, profile, index);
+      const entry = buildBaseEntry(seed, profile, index, source);
       bases.push({ entry, profile });
       add(entry);
     });

@@ -2,6 +2,7 @@ import type { Stats } from '../types';
 
 const LABELS: Array<{ key: keyof Stats; label: string }> = [
   { key: 'power', label: 'Kraft' },
+  { key: 'toughness', label: 'Tålighet' },
   { key: 'speed', label: 'Snabbhet' },
   { key: 'range', label: 'Räckvidd' },
   { key: 'intelligence', label: 'Intelligens' },

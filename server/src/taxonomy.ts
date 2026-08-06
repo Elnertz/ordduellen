@@ -235,3 +235,58 @@ export function computeVulnerableTags(tags: string[]): string[] {
 
 export const ALL_TAGS = Object.keys(TAG_LABELS);
 export const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
+
+// Player-facing Swedish ability phrases derived from tags.
+const ABILITY_BY_TAG: Record<string, string> = {
+  flying: 'kan flyga',
+  fire: 'attackerar med eld',
+  ice: 'fryser sina motståndare',
+  lightning: 'slår till med blixtar',
+  poison: 'är giftig',
+  acid: 'löser upp material med syra',
+  radiation: 'sprider dödlig strålning',
+  water: 'behärskar vatten',
+  magic: 'behärskar magi',
+  wizard: 'kastar besvärjelser',
+  predator: 'jagar och dödar byten',
+  hunter: 'spårar och fäller sitt byte',
+  explosive: 'exploderar med enorm kraft',
+  nuclear: 'utlöser kärnvapenkraft',
+  emp: 'slår ut elektronik med en puls',
+  hacker: 'tar kontroll över datorer',
+  ai: 'tänker snabbare än en människa',
+  robot: 'är en outtröttlig maskin',
+  armored: 'är kraftigt pansrad',
+  giant: 'är enorm till storleken',
+  undead: 'kan inte dö på vanligt sätt',
+  dragon: 'spyr eld och flyger',
+  god: 'har gudomlig makt',
+  cosmic: 'bär på kosmisk kraft',
+  blackhole: 'slukar allt med sin gravitation',
+  reality: 'kan böja själva verkligheten',
+  gravity: 'kontrollerar gravitationen',
+  disease: 'smittar och bryter ner kroppen',
+  medicine: 'botar sjukdomar',
+  aquatic: 'härskar under vattnet',
+};
+
+export function abilitiesFromTags(tags: string[]): string[] {
+  const out: string[] = [];
+  for (const tag of tags) {
+    const phrase = ABILITY_BY_TAG[tag];
+    if (phrase && !out.includes(phrase)) out.push(phrase);
+  }
+  return out.slice(0, 5);
+}
+
+export function weaknessesFromTags(vulnerableTags: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const tag of vulnerableTags) {
+    const label = tagLabel(tag);
+    if (seen.has(label)) continue;
+    seen.add(label);
+    out.push(`sårbar mot ${label}`);
+  }
+  return out.slice(0, 5);
+}

@@ -296,6 +296,20 @@ function TargetCard({ game }: { game: GameState }) {
       </div>
       <p className="target-desc">{t.description}</p>
       <StatBars stats={t.stats} />
+      {(t.abilities.length > 0 || t.weaknesses.length > 0) && (
+        <div className="traits">
+          {t.abilities.length > 0 && (
+            <p className="trait-line">
+              <span className="trait-label good">Förmågor:</span> {t.abilities.join(', ')}
+            </p>
+          )}
+          {t.weaknesses.length > 0 && (
+            <p className="trait-line">
+              <span className="trait-label bad">Svagheter:</span> {t.weaknesses.join(', ')}
+            </p>
+          )}
+        </div>
+      )}
       {t.tagLabels.length > 0 && (
         <div className="tag-row">
           {t.tagLabels.slice(0, 8).map((tag) => (
@@ -321,9 +335,9 @@ function VerdictFeed({ judgements }: { judgements: JudgeResult[] }) {
               {j.answer.name}
               {j.answer.matchType === 'inferred' && <span className="inferred-note"> (gissad)</span>}
             </span>
-            <span className="verdict-conf">{Math.round(j.confidence * 100)}% säker</span>
+            <span className="verdict-conf">{j.confidence}% säker</span>
           </div>
-          <p className="verdict-text">{j.explanation}</p>
+          <p className="verdict-text">{j.reason}</p>
         </div>
       ))}
     </section>

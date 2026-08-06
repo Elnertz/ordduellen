@@ -8,6 +8,7 @@ export type Verdict = 'approved' | 'rejected';
 
 export interface Stats {
   power: number;
+  toughness: number;
   speed: number;
   range: number;
   intelligence: number;
@@ -26,6 +27,9 @@ export interface TargetView {
   categoryLabels: string[];
   tags: string[];
   tagLabels: string[];
+  abilities: string[];
+  weaknesses: string[];
+  quality: string;
   description: string;
   scale: number;
   stats: Stats;
@@ -74,9 +78,16 @@ export interface JudgeReason {
 }
 
 export interface JudgeResult {
+  approved: boolean;
   verdict: Verdict;
+  /** 0–100. */
   confidence: number;
+  reason: string;
   explanation: string;
+  ruleType: string;
+  attacker: string;
+  matchingConcepts: string[];
+  warnings: string[];
   reasons: JudgeReason[];
   target: { name: string };
   answer: { name: string; matchType: string; resolved: boolean };
@@ -91,17 +102,27 @@ export interface TurnResponse {
 export interface Entry {
   id: string;
   name: string;
+  englishName?: string;
   aliases: string[];
+  aliasesEn?: string[];
   categories: string[];
   power: number;
+  toughness: number;
   speed: number;
   range: number;
   intelligence: number;
+  size: number;
+  techLevel: number;
+  cosmicLevel: number;
   tags: string[];
   defeatsTags: string[];
   vulnerableToTags: string[];
+  abilities: string[];
+  weaknesses: string[];
   description: string;
   scale: number;
+  source: string;
+  quality: 'verified' | 'generated';
   curated?: boolean;
 }
 

@@ -3,7 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import type { Entry, EntryRef } from './types.js';
 import { generateEntries, normalizeName } from './generator.js';
-import { computeDefeatsTags, computeVulnerableTags } from './taxonomy.js';
+import {
+  abilitiesFromTags,
+  computeDefeatsTags,
+  computeVulnerableTags,
+  weaknessesFromTags,
+} from './taxonomy.js';
 import { inferFromWord } from './infer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -132,19 +137,21 @@ export class Database {
     // Fall back to heuristic inference so any word can be reasoned about.
     const inf = inferFromWord(query);
     const pseudo: Entry = recompute({
+      ...blankEntry(),
       id: `inferred:${norm}`,
       name: query.trim(),
-      aliases: [],
       categories: ['concepts'],
       power: inf.power,
       speed: inf.speed,
       range: inf.range,
       intelligence: inf.intelligence,
+      size: 40,
       tags: inf.tags,
-      defeatsTags: [],
-      vulnerableToTags: [],
       description: `${query.trim()} är okänt för domaren och bedöms utifrån gissade egenskaper.`,
       scale: inf.scale,
+      cosmicLevel: inf.scale,
+      source: 'inferred',
+      quality: 'generated',
       curated: false,
     });
     return { entry: pseudo, ref: refOf(pseudo, 'inferred', false) };
@@ -203,22 +210,8 @@ export class Database {
 
   createEntry(input: Partial<Entry> & { name: string }): Entry {
     const id = input.id && !this.byId.has(input.id) ? input.id : uniqueId(input.name, this.byId);
-    const entry = recompute({
-      id,
-      name: input.name,
-      aliases: input.aliases ?? [],
-      categories: input.categories ?? ['concepts'],
-      power: input.power ?? 50,
-      speed: input.speed ?? 50,
-      range: input.range ?? 50,
-      intelligence: input.intelligence ?? 50,
-      tags: input.tags ?? [],
-      defeatsTags: [],
-      vulnerableToTags: [],
-      description: input.description ?? '',
-      scale: input.scale ?? 50,
-      curated: true,
-    });
+    const { id: _ignore, ...rest } = input;
+    const entry = recompute({ ...blankEntry(), ...rest, id, curated: true, quality: 'verified' });
     this.overrides.created.push(entry);
     this.overrides.deleted = this.overrides.deleted.filter((d) => d !== id);
     this.persist();
@@ -284,7 +277,7 @@ export class Database {
       seen.add(e.id);
       if (!e.name?.trim()) issues.push(`Post ${e.id} saknar namn`);
       if (!e.categories?.length) issues.push(`${e.name} saknar kategori`);
-      for (const s of [e.power, e.speed, e.range, e.intelligence, e.scale]) {
+      for (const s of [e.power, e.toughness, e.speed, e.range, e.intelligence, e.size, e.techLevel, e.cosmicLevel, e.scale]) {
         if (typeof s !== 'number' || s < 0 || s > 100) {
           issues.push(`${e.name} har ogiltigt statvärde`);
           break;
@@ -312,14 +305,22 @@ function blankEntry(): Entry {
     aliases: [],
     categories: ['concepts'],
     power: 50,
+    toughness: 45,
     speed: 50,
     range: 50,
     intelligence: 50,
+    size: 40,
+    techLevel: 10,
+    cosmicLevel: 50,
     tags: [],
     defeatsTags: [],
     vulnerableToTags: [],
+    abilities: [],
+    weaknesses: [],
     description: '',
     scale: 50,
+    source: 'custom',
+    quality: 'verified',
     curated: true,
   };
 }
@@ -327,11 +328,22 @@ function blankEntry(): Entry {
 // Recompute derived tag relationships so admin edits stay consistent.
 function recompute(entry: Entry): Entry {
   const tags = [...new Set(entry.tags)];
+  const vulnerableToTags = computeVulnerableTags(tags);
+  const scale = entry.scale ?? entry.cosmicLevel ?? 50;
   return {
     ...entry,
     tags,
     defeatsTags: computeDefeatsTags(tags),
-    vulnerableToTags: computeVulnerableTags(tags),
+    vulnerableToTags,
+    scale,
+    cosmicLevel: entry.cosmicLevel ?? scale,
+    size: entry.size ?? 40,
+    techLevel: entry.techLevel ?? 10,
+    toughness: entry.toughness ?? Math.round((entry.power ?? 50) * 0.6 + 15),
+    abilities: entry.abilities?.length ? entry.abilities : abilitiesFromTags(tags),
+    weaknesses: weaknessesFromTags(vulnerableToTags),
+    source: entry.source ?? 'custom',
+    quality: entry.quality ?? (entry.curated ? 'verified' : 'generated'),
   };
 }
 

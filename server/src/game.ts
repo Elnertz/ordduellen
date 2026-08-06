@@ -21,9 +21,12 @@ export interface TargetView {
   categoryLabels: string[];
   tags: string[];
   tagLabels: string[];
+  abilities: string[];
+  weaknesses: string[];
+  quality: string;
   description: string;
   scale: number;
-  stats: { power: number; speed: number; range: number; intelligence: number };
+  stats: { power: number; toughness: number; speed: number; range: number; intelligence: number };
 }
 
 export interface ChainLink {
@@ -296,9 +299,18 @@ function toTargetView(entry: Entry): TargetView {
     categoryLabels: entry.categories.map(categoryLabel),
     tags: entry.tags,
     tagLabels: entry.tags.map(tagLabel),
+    abilities: entry.abilities ?? [],
+    weaknesses: entry.weaknesses ?? [],
+    quality: entry.quality ?? (entry.curated ? 'verified' : 'generated'),
     description: entry.description,
     scale: entry.scale,
-    stats: { power: entry.power, speed: entry.speed, range: entry.range, intelligence: entry.intelligence },
+    stats: {
+      power: entry.power,
+      toughness: entry.toughness,
+      speed: entry.speed,
+      range: entry.range,
+      intelligence: entry.intelligence,
+    },
   };
 }
 
