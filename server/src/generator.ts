@@ -11,8 +11,15 @@ import {
 } from './taxonomy.js';
 import { SEED_CATEGORIES, type CategoryProfile, type Seed, type VariantGroup } from './data/seeds.js';
 import { EXTRA_CATEGORIES } from './data/seeds-extra.js';
+import { POKEMON_CATEGORIES } from './data/seeds-pokemon.js';
+import { MEGA_CATEGORIES } from './data/seeds-mega.js';
 
-const ALL_SEED_CATEGORIES = [...SEED_CATEGORIES, ...EXTRA_CATEGORIES];
+const ALL_SEED_CATEGORIES = [
+  ...SEED_CATEGORIES,
+  ...EXTRA_CATEGORIES,
+  ...POKEMON_CATEGORIES,
+  ...MEGA_CATEGORIES,
+];
 
 // Default physical size (0–100) and technology level (0–100) per category, used
 // when a seed does not specify them explicitly.
@@ -202,6 +209,21 @@ const EXTRA_MODS: VariantMod[] = [
   { id: 'kris', prefix: 'Kris', desc: 'en kristalliserad variant', addTags: ['material', 'armored'], power: 10 },
 ];
 
+// Target total database size. The verified real words are the quality core;
+// the rest are logical, clearly-marked generated variants. Architecture scales
+// further (to 100 000+) simply by raising this or adding more data packs.
+export const TARGET_TOTAL = Number(process.env.ORDDUELLEN_TARGET_TOTAL ?? 50000);
+
+// Ordered pool of every variant modifier, used to fill up to TARGET_TOTAL.
+const FILL_MODS: VariantMod[] = [
+  ...VARIANTS.universal,
+  ...VARIANTS.elemental,
+  ...VARIANTS.dark,
+  ...VARIANTS.tech,
+  ...VARIANTS.stone,
+  ...EXTRA_MODS,
+];
+
 /** Generate `count` novel entries not already present in `taken` names. */
 export function generateExtra(count: number, taken: Set<string>): Entry[] {
   const singleWordBases: Array<{ seed: Seed; profile: CategoryProfile }> = [];
@@ -264,11 +286,24 @@ export function generateEntries(): Entry[] {
     });
   }
 
-  // Pass 2: variants.
+  // Pass 2: variants declared per category.
   for (const { entry, profile } of bases) {
     if (!eligibleForVariants(entry)) continue;
     for (const group of profile.variants) {
       for (const mod of VARIANTS[group]) {
+        add(buildVariant(entry, mod));
+      }
+    }
+  }
+
+  // Pass 3: deterministically fill with additional logical variants until the
+  // database reaches TARGET_TOTAL entries. Iterating modifier-outer / base-inner
+  // spreads the variants evenly across the whole verified base.
+  if (byName.size < TARGET_TOTAL) {
+    const fillBases = bases.filter((b) => eligibleForVariants(b.entry));
+    outer: for (const mod of FILL_MODS) {
+      for (const { entry } of fillBases) {
+        if (byName.size >= TARGET_TOTAL) break outer;
         add(buildVariant(entry, mod));
       }
     }

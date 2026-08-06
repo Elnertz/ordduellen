@@ -36,10 +36,15 @@ Klart i denna iteration:
   Domslutet returnerar `approved`, `reason` (naturlig svenska), `confidence` (0–100),
   `ruleType`, `attacker`, `target`, matchande begrepp (läsbara, aldrig interna taggnamn)
   och `warnings`.
-- **Fler riktiga ord**: ett kurerat datapaket (`server/src/data/seeds-extra.ts`) med
-  hundratals verkliga begrepp i nya kategorier (insekter, fiskar, fåglar, dinosaurier,
-  svampar, kroppsdelar, dryck, science fiction, seriefigurer, abstrakta koncept m.m.).
-  Genererade varianter är tydligt märkta `quality: 'generated'`.
+- **Fler riktiga ord**: kurerade datapaket (`seeds-extra.ts`, `seeds-mega.ts`) plus hela
+  Pokédex (`seeds-pokemon.ts`) ger nu **~4 700 verifierade riktiga ord** i alla kategorier
+  (djur, fåglar, fiskar, insekter, reptiler, dinosaurier, växter, svampar, mat, dryck,
+  kroppsdelar, yrken, sport, musik, vapen, fordon, verktyg, byggnader, material, länder,
+  städer, natur, väder, rymden, vetenskap, medicin, sjukdomar, teknik, internet, mytologi,
+  fantasy, magi, superhjältar, skurkar, spel-/film-/anime-karaktärer, historia, koncept …).
+- **Skala**: databasen fylls deterministiskt till **50 000 poster totalt** (verifierad kärna
+  + logiska varianter som tydligt märks `quality: 'generated'`). Målstorleken styrs av
+  `TARGET_TOTAL`/`ORDDUELLEN_TARGET_TOTAL` och skalar vidare mot 100 000 utan motoränd­ringar.
 - **Normalisering**: gemener/versaler, svenska tecken, bestämd/obestämd form och vanliga
   stavningsvarianter hanteras i resolvern.
 - **Domarloggning, rapportering och röstning**: felaktiga/omtvistade domslut kan loggas,
