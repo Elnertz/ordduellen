@@ -1,15 +1,15 @@
-import type { Difficulty, GameState, MoveResponse } from './types';
+import type {
+  AdminMeta,
+  AdminStats,
+  Difficulty,
+  Entry,
+  GameMode,
+  GameState,
+  TurnResponse,
+  WinCondition,
+} from './types';
 
 const BASE = '/api';
-
-async function parse<T>(res: Response): Promise<T> {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = (data as { error?: string }).error ?? `Fel ${res.status}`;
-    throw new ApiError(message, res.status, data);
-  }
-  return data as T;
-}
 
 export class ApiError extends Error {
   constructor(
@@ -22,32 +22,82 @@ export class ApiError extends Error {
   }
 }
 
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+    ...init,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const message = (data as { error?: string }).error ?? `Fel ${res.status}`;
+    throw new ApiError(message, res.status, data);
+  }
+  return data as T;
+}
+
+// --- Game ---------------------------------------------------------------
+
 export interface NewGameOptions {
-  rounds: number;
-  rackSize: number;
+  mode: GameMode;
+  winCondition: WinCondition;
   difficulty: Difficulty;
+  targetScore: number;
+  startWord?: string;
+  playerNames?: string[];
 }
 
-export async function createGame(options: NewGameOptions): Promise<GameState> {
-  const res = await fetch(`${BASE}/games`, {
+export const createGame = (options: NewGameOptions) =>
+  request<GameState>('/games', { method: 'POST', body: JSON.stringify(options) });
+
+export const playTurn = (id: string, word: string) =>
+  request<TurnResponse>(`/games/${id}/turns`, { method: 'POST', body: JSON.stringify({ word }) });
+
+export const getRandomWord = () =>
+  request<{ word: string; description: string }>('/random-word');
+
+// --- Admin --------------------------------------------------------------
+
+export const getAdminStats = () => request<AdminStats>('/admin/stats');
+export const getAdminMeta = () => request<AdminMeta>('/admin/meta');
+
+export const searchEntries = (params: {
+  query?: string;
+  category?: string;
+  tag?: string;
+  limit?: number;
+  offset?: number;
+}) => {
+  const q = new URLSearchParams();
+  if (params.query) q.set('query', params.query);
+  if (params.category) q.set('category', params.category);
+  if (params.tag) q.set('tag', params.tag);
+  q.set('limit', String(params.limit ?? 30));
+  q.set('offset', String(params.offset ?? 0));
+  return request<{ total: number; items: Entry[] }>(`/admin/entries?${q.toString()}`);
+};
+
+export const createEntry = (entry: Partial<Entry>) =>
+  request<Entry>('/admin/entries', { method: 'POST', body: JSON.stringify(entry) });
+
+export const updateEntry = (id: string, patch: Partial<Entry>) =>
+  request<Entry>(`/admin/entries/${id}`, { method: 'PUT', body: JSON.stringify(patch) });
+
+export const deleteEntry = (id: string) =>
+  request<{ ok: boolean }>(`/admin/entries/${id}`, { method: 'DELETE' });
+
+export const importEntries = (entries: Entry[]) =>
+  request<{ imported: number; total: number }>('/admin/import', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(options),
+    body: JSON.stringify({ entries }),
   });
-  return parse<GameState>(res);
-}
 
-export async function submitWord(id: string, word: string): Promise<MoveResponse> {
-  const res = await fetch(`${BASE}/games/${id}/moves`, {
+export const generateEntries = (count: number) =>
+  request<{ generated: number; total: number; sample: string[] }>('/admin/generate', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ word }),
+    body: JSON.stringify({ count }),
   });
-  return parse<MoveResponse>(res);
-}
 
-export async function getHint(id: string): Promise<string | null> {
-  const res = await fetch(`${BASE}/games/${id}/hint`);
-  const data = await parse<{ hint: string | null }>(res);
-  return data.hint;
-}
+export const validateDatabase = () =>
+  request<{ ok: boolean; issues: string[]; checked: number }>('/admin/validate');
+
+export const exportUrl = `${BASE}/admin/export`;
