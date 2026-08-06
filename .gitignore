@@ -8,5 +8,6 @@ coverage/
 .DS_Store
 .vite/
 
-# Runtime admin overrides (generated at runtime, not source)
+# Runtime admin overrides / reports (generated at runtime, not source)
 data/custom-entities.json
+data/judgment-reports.json

@@ -35,6 +35,17 @@ export const CATEGORY_LABELS: Record<string, string> = {
   concepts: 'Koncept',
   cosmic: 'Kosmiska entiteter',
   people: 'Personer',
+  insects: 'Insekter',
+  fish: 'Fiskar',
+  birds: 'Fåglar',
+  dinosaurs: 'Dinosaurier',
+  fungi: 'Svampar',
+  bodyparts: 'Kroppsdelar',
+  drinks: 'Dryck',
+  scifi: 'Science fiction',
+  characters: 'Karaktärer',
+  tools: 'Verktyg',
+  anime: 'Anime',
 };
 
 export const TAG_LABELS: Record<string, string> = {
@@ -140,6 +151,11 @@ export const TAG_LABELS: Record<string, string> = {
   aquatic: 'vattenlevande',
   organic: 'organisk',
   living: 'levande',
+  fungus: 'svamp',
+  tool: 'verktyg',
+  scifi: 'science fiction',
+  laser: 'laser',
+  sound: 'ljud',
 };
 
 export function tagLabel(tag: string): string {
@@ -167,7 +183,7 @@ export const TAG_BEATS: Record<string, string[]> = {
   disaster: ['building', 'city', 'human', 'animal', 'vehicle'],
   predator: ['prey', 'animal', 'insect'],
   hunter: ['animal', 'predator', 'prey'],
-  human: ['animal', 'plant', 'nature'],
+  human: ['plant'],
   weapon: ['human', 'animal'],
   blade: ['human', 'animal', 'organic'],
   firearm: ['human', 'animal', 'soldier', 'predator'],
@@ -204,6 +220,9 @@ export const TAG_BEATS: Record<string, string[]> = {
   entity: ['cosmic', 'god', 'planet', 'star', 'reality', 'human', 'time'],
   reality: ['human', 'god', 'cosmic', 'planet', 'star', 'time', 'concept', 'entity'],
   time: ['human', 'building', 'city', 'country', 'animal', 'material'],
+  fungus: ['organic', 'plant', 'tree', 'human', 'living'],
+  laser: ['metal', 'material', 'machine', 'human', 'animal', 'robot'],
+  sound: ['human', 'glass'],
 };
 
 // Inverse relationship: which tags beat a given tag.

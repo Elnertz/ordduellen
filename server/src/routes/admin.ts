@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Database } from '../database.js';
 import { generateExtra, normalizeName } from '../generator.js';
 import { ALL_CATEGORIES, ALL_TAGS, CATEGORY_LABELS, TAG_LABELS } from '../taxonomy.js';
+import { getReportStore, type ReportStatus } from '../reports.js';
 import type { Entry } from '../types.js';
 
 export function createAdminRouter(db: Database): Router {
@@ -86,6 +87,23 @@ export function createAdminRouter(db: Database): Router {
 
   router.get('/validate', (_req, res) => {
     res.json(db.validate());
+  });
+
+  // Reported / disputed judgments for admin review and correction.
+  router.get('/reports', (req, res) => {
+    const status = req.query.status === 'open' || req.query.status === 'resolved'
+      ? (req.query.status as ReportStatus)
+      : undefined;
+    const store = getReportStore();
+    res.json({ stats: store.stats(), reports: store.list(status, 200) });
+  });
+
+  router.post('/reports/:id/resolve', (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const resolution = typeof body.resolution === 'string' ? body.resolution : 'Åtgärdad';
+    const report = getReportStore().resolve(req.params.id, resolution);
+    if (!report) return res.status(404).json({ error: 'Rapporten hittades inte.' });
+    return res.json({ ok: true, report });
   });
 
   return router;

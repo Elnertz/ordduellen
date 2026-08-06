@@ -9,13 +9,19 @@ export type VariantGroup = 'universal' | 'elemental' | 'dark' | 'tech' | 'stone'
 
 export interface Seed {
   name: string;
+  englishName?: string;
   aliases?: string[];
+  aliasesEn?: string[];
   tags?: string[];
   power?: number;
+  toughness?: number;
   speed?: number;
   range?: number;
   intelligence?: number;
+  size?: number;
+  techLevel?: number;
   scale?: number;
+  abilities?: string[];
 }
 
 export interface CategoryProfile {
@@ -36,6 +42,8 @@ function normalize(items: SeedItem[]): Seed[] {
 export interface SeedCategory {
   profile: CategoryProfile;
   items: Seed[];
+  /** Data package id; defaults to "core". */
+  source?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,7 +135,7 @@ const military: SeedItem[] = [
   { name: 'Slagskepp', tags: ['ship', 'vehicle', 'armored'], power: 82, range: 78, scale: 70 },
   { name: 'Drönare', tags: ['aircraft', 'technology', 'flying', 'electronic'], power: 54, speed: 70, range: 70, intelligence: 50, scale: 48 },
   { name: 'Armé', tags: ['military', 'human'], power: 88, range: 70, scale: 78 },
-  'General', 'Krigare', 'Riddare', 'Legosoldat', 'Prickskytt', 'Kommandosoldat',
+  'General', 'Krigare', 'Legosoldat', 'Prickskytt', 'Kommandosoldat',
   'Artilleri', 'Robotförsvar', 'Missilförsvarssystem', 'Krigsskepp', 'Torped',
 ];
 
@@ -279,6 +287,8 @@ const buildings: SeedItem[] = [
   { name: 'Fästning', tags: ['building', 'armored', 'military'], power: 60, scale: 60 },
   { name: 'Pyramid', tags: ['building'], power: 46, scale: 60 },
   { name: 'Bunker', tags: ['building', 'armored', 'military'], power: 58, scale: 55 },
+  { name: 'Stad', tags: ['city'], power: 44, scale: 62, size: 80 },
+  { name: 'Hus', aliases: ['Byggnad'], tags: ['building'], power: 36, scale: 48 },
   'Fyr', 'Bro', 'Damm', 'Mur', 'Katedral', 'Tempel', 'Torn', 'Stadion', 'Fabrik',
 ];
 
@@ -300,6 +310,7 @@ const history: SeedItem[] = [
   { name: 'Gladiator', tags: ['soldier', 'human', 'history'], power: 50 },
   { name: 'Samuraj', tags: ['soldier', 'blade', 'human', 'history'], power: 58, speed: 66 },
   { name: 'Ninja', tags: ['human', 'history'], power: 50, speed: 80, intelligence: 66 },
+  { name: 'Riddare', tags: ['soldier', 'blade', 'armored'], power: 58 },
   'Farao', 'Kejsare', 'Kung', 'Drottning', 'Korsriddare', 'Mongolarmé', 'Spartan',
   'Pirat', 'Cowboy', 'Riddarorden',
 ];

@@ -10,6 +10,9 @@ import {
   weaknessesFromTags,
 } from './taxonomy.js';
 import { SEED_CATEGORIES, type CategoryProfile, type Seed, type VariantGroup } from './data/seeds.js';
+import { EXTRA_CATEGORIES } from './data/seeds-extra.js';
+
+const ALL_SEED_CATEGORIES = [...SEED_CATEGORIES, ...EXTRA_CATEGORIES];
 
 // Default physical size (0–100) and technology level (0–100) per category, used
 // when a seed does not specify them explicitly.
@@ -251,7 +254,7 @@ export function generateEntries(): Entry[] {
 
   // Pass 1: base entries.
   const bases: Array<{ entry: Entry; profile: CategoryProfile }> = [];
-  for (const category of SEED_CATEGORIES) {
+  for (const category of ALL_SEED_CATEGORIES) {
     const { profile, items } = category;
     const source = category.source ?? 'core';
     items.forEach((seed, index) => {

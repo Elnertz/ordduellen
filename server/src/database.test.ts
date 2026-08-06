@@ -30,6 +30,29 @@ describe('Database resolution', () => {
     expect(r.ref.matchType).toBe('inferred');
     expect(r.ref.resolved).toBe(false);
   });
+
+  it('normalizes Swedish definite/plural forms to the base word', () => {
+    expect(db.resolve('katten').entry.name).toBe('Katt');
+    expect(db.resolve('hundar').entry.name).toBe('Hund');
+    expect(db.resolve('planeten').entry.name).toBe('Planet');
+    expect(db.resolve('vargarna').entry.name).toBe('Varg');
+    expect(db.resolve('musen').entry.name).toBe('Mus');
+  });
+});
+
+describe('Entry schema', () => {
+  it('populates the extended fields on every entry', () => {
+    for (const e of db.search({ category: 'animals', limit: 10 }).items) {
+      expect(typeof e.toughness).toBe('number');
+      expect(typeof e.size).toBe('number');
+      expect(typeof e.techLevel).toBe('number');
+      expect(typeof e.cosmicLevel).toBe('number');
+      expect(Array.isArray(e.abilities)).toBe(true);
+      expect(Array.isArray(e.weaknesses)).toBe(true);
+      expect(['verified', 'generated']).toContain(e.quality);
+      expect(typeof e.source).toBe('string');
+    }
+  });
 });
 
 describe('Database search', () => {

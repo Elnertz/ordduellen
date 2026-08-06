@@ -129,6 +129,12 @@ export class Database {
       return { entry: exact, ref: refOf(exact, match, true) };
     }
 
+    // Swedish morphology: definite/plural forms → base form (katten → katt).
+    const morph = this.baseFormMatch(norm);
+    if (morph) {
+      return { entry: morph, ref: refOf(morph, 'alias', true) };
+    }
+
     const fuzzy = this.fuzzyMatch(norm);
     if (fuzzy) {
       return { entry: fuzzy, ref: refOf(fuzzy, 'fuzzy', true) };
@@ -155,6 +161,27 @@ export class Database {
       curated: false,
     });
     return { entry: pseudo, ref: refOf(pseudo, 'inferred', false) };
+  }
+
+  // Try common Swedish definite/plural endings to reach a base form present in
+  // the database (e.g. "katten"/"katter" → "katt", "äpplet" → "äpple").
+  private baseFormMatch(norm: string): Entry | undefined {
+    if (norm.length < 4 || norm.includes(' ')) return undefined;
+    // Longer suffixes first so the most specific form wins.
+    const suffixes = ['orna', 'erna', 'arna', 'orn', 'ern', 'arn', 'or', 'er', 'ar', 'en', 'et', 'na', 'n', 't', 'a'];
+    for (const suf of suffixes) {
+      if (!norm.endsWith(suf)) continue;
+      const stem = norm.slice(0, norm.length - suf.length);
+      if (stem.length < 2) continue;
+      const direct = this.byName.get(stem);
+      if (direct) return direct;
+      // Restore a dropped final "e" (e.g. "äpplet" → "äpple").
+      if (!stem.endsWith('e')) {
+        const withE = this.byName.get(`${stem}e`);
+        if (withE) return withE;
+      }
+    }
+    return undefined;
   }
 
   private fuzzyMatch(norm: string): Entry | undefined {
