@@ -296,9 +296,9 @@ function TargetCard({ game }: { game: GameState }) {
       </div>
       <p className="target-desc">{t.description}</p>
       <StatBars stats={t.stats} />
-      {t.tags.length > 0 && (
+      {t.tagLabels.length > 0 && (
         <div className="tag-row">
-          {t.tags.slice(0, 8).map((tag) => (
+          {t.tagLabels.slice(0, 8).map((tag) => (
             <span key={tag} className="tag-pill">
               #{tag}
             </span>

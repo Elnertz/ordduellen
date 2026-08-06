@@ -1,7 +1,7 @@
 import type { Entry, JudgeResult } from './types.js';
 import { Database } from './database.js';
 import { judge } from './judge.js';
-import { categoryLabel } from './taxonomy.js';
+import { categoryLabel, tagLabel } from './taxonomy.js';
 
 export type GameMode = 'twoPlayer' | 'vsComputer';
 export type WinCondition = 'points' | 'endless';
@@ -20,6 +20,7 @@ export interface TargetView {
   categories: string[];
   categoryLabels: string[];
   tags: string[];
+  tagLabels: string[];
   description: string;
   scale: number;
   stats: { power: number; speed: number; range: number; intelligence: number };
@@ -294,6 +295,7 @@ function toTargetView(entry: Entry): TargetView {
     categories: entry.categories,
     categoryLabels: entry.categories.map(categoryLabel),
     tags: entry.tags,
+    tagLabels: entry.tags.map(tagLabel),
     description: entry.description,
     scale: entry.scale,
     stats: { power: entry.power, speed: entry.speed, range: entry.range, intelligence: entry.intelligence },

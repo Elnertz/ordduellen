@@ -25,6 +25,7 @@ export interface TargetView {
   categories: string[];
   categoryLabels: string[];
   tags: string[];
+  tagLabels: string[];
   description: string;
   scale: number;
   stats: Stats;
