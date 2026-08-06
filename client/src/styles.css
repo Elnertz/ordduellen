@@ -552,6 +552,23 @@ input[type='range'] {
   color: #334155;
 }
 
+.report-link {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.report-link:disabled {
+  color: var(--good);
+  cursor: default;
+  text-decoration: none;
+}
+
 /* Chain history */
 .chain-list {
   list-style: none;
@@ -792,6 +809,95 @@ input[type='range'] {
   border-radius: 5px;
   vertical-align: middle;
   text-transform: uppercase;
+}
+
+.gen-badge.verified {
+  background: var(--good-bg);
+  color: #15803d;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-tabs .nav-btn {
+  color: #cbd5e1;
+}
+
+.report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.report-item {
+  border: 1px solid #eef2f7;
+  border-left: 5px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.report-item.resolved {
+  opacity: 0.65;
+}
+
+.report-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.report-verdict {
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.report-verdict.approved {
+  color: var(--good);
+}
+
+.report-verdict.rejected {
+  color: var(--bad);
+}
+
+.report-pair {
+  font-weight: 700;
+}
+
+.report-pair .arrow {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.report-conf {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.report-reason {
+  margin: 6px 0;
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.report-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.report-resolution {
+  color: var(--good);
 }
 
 .row-actions {

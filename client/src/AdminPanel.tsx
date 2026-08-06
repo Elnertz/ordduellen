@@ -7,16 +7,20 @@ import {
   generateEntries,
   getAdminMeta,
   getAdminStats,
+  getReports,
   importEntries,
+  resolveReport,
   searchEntries,
   updateEntry,
   validateDatabase,
+  type JudgmentReport,
 } from './api';
 import type { AdminMeta, AdminStats, Entry } from './types';
 
 const PAGE_SIZE = 25;
 
 export default function AdminPanel() {
+  const [tab, setTab] = useState<'words' | 'reports'>('words');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [meta, setMeta] = useState<AdminMeta | null>(null);
   const [query, setQuery] = useState('');
@@ -132,6 +136,19 @@ export default function AdminPanel() {
         <StatCard label="Kategorier" value={stats ? Object.keys(stats.categories).length : '…'} />
       </section>
 
+      <div className="admin-tabs">
+        <button className={`nav-btn ${tab === 'words' ? 'active' : ''}`} onClick={() => setTab('words')} type="button">
+          Ord
+        </button>
+        <button className={`nav-btn ${tab === 'reports' ? 'active' : ''}`} onClick={() => setTab('reports')} type="button">
+          Rapporter
+        </button>
+      </div>
+
+      {tab === 'reports' && <ReportsView />}
+
+      {tab === 'words' && (
+      <>
       <section className="card admin-toolbar">
         <div className="admin-filters">
           <input
@@ -232,7 +249,11 @@ export default function AdminPanel() {
                 <tr key={e.id}>
                   <td>
                     <strong>{e.name}</strong>
-                    {!e.curated && <span className="gen-badge">gen</span>}
+                    {e.quality === 'generated' ? (
+                      <span className="gen-badge">gen</span>
+                    ) : (
+                      <span className="gen-badge verified">verifierad</span>
+                    )}
                   </td>
                   <td>{e.categories.join(', ')}</td>
                   <td className="num">{e.scale}</td>
@@ -268,7 +289,79 @@ export default function AdminPanel() {
           onSaved={onSaved}
         />
       )}
+      </>
+      )}
     </div>
+  );
+}
+
+function ReportsView() {
+  const [data, setData] = useState<{ stats: { total: number; open: number; resolved: number }; reports: JudgmentReport[] } | null>(null);
+  const [filter, setFilter] = useState<'open' | 'resolved' | 'all'>('open');
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setBusy(true);
+    try {
+      setData(await getReports(filter === 'all' ? undefined : filter));
+    } catch {
+      setData({ stats: { total: 0, open: 0, resolved: 0 }, reports: [] });
+    } finally {
+      setBusy(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const resolve = useCallback(
+    async (id: string) => {
+      const resolution = prompt('Hur åtgärdades domslutet?', 'Relation korrigerad') ?? 'Åtgärdad';
+      await resolveReport(id, resolution);
+      await load();
+    },
+    [load],
+  );
+
+  return (
+    <section className="card">
+      <div className="admin-table-head">
+        <span>
+          {data ? `${data.stats.open} öppna · ${data.stats.resolved} åtgärdade` : 'Laddar…'}
+        </span>
+        <select value={filter} onChange={(e) => setFilter(e.target.value as 'open' | 'resolved' | 'all')} aria-label="Filtrera rapporter">
+          <option value="open">Öppna</option>
+          <option value="resolved">Åtgärdade</option>
+          <option value="all">Alla</option>
+        </select>
+      </div>
+      {data && data.reports.length === 0 && !busy && <p className="empty">Inga rapporter.</p>}
+      <ul className="report-list">
+        {data?.reports.map((r) => (
+          <li key={r.id} className={`report-item ${r.status}`}>
+            <div className="report-main">
+              <span className={`report-verdict ${r.verdict}`}>{r.verdict === 'approved' ? 'Godkänt' : 'Nekat'}</span>
+              <span className="report-pair">
+                {r.answer} <span className="arrow">mot</span> {r.target}
+              </span>
+              {typeof r.confidence === 'number' && <span className="report-conf">{r.confidence}%</span>}
+            </div>
+            {r.reason && <p className="report-reason">{r.reason}</p>}
+            <div className="report-meta">
+              <span>👍 {r.votesAgree} · 👎 {r.votesDisagree}</span>
+              {r.status === 'open' ? (
+                <button className="btn small" type="button" onClick={() => resolve(r.id)}>
+                  Markera åtgärdad
+                </button>
+              ) : (
+                <span className="report-resolution">Åtgärdad: {r.resolution}</span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -294,14 +387,19 @@ function EntryEditor({
 }) {
   const [form, setForm] = useState(() => ({
     name: entry?.name ?? '',
+    englishName: entry?.englishName ?? '',
     aliases: (entry?.aliases ?? []).join(', '),
     categories: (entry?.categories ?? ['concepts']).join(', '),
     tags: (entry?.tags ?? []).join(', '),
     description: entry?.description ?? '',
     power: entry?.power ?? 50,
+    toughness: entry?.toughness ?? 50,
     speed: entry?.speed ?? 50,
     range: entry?.range ?? 50,
     intelligence: entry?.intelligence ?? 50,
+    size: entry?.size ?? 40,
+    techLevel: entry?.techLevel ?? 10,
+    cosmicLevel: entry?.cosmicLevel ?? 50,
     scale: entry?.scale ?? 50,
   }));
   const [error, setError] = useState<string | null>(null);
@@ -321,14 +419,19 @@ function EntryEditor({
     setError(null);
     const payload = {
       name: form.name.trim(),
+      englishName: form.englishName.trim() || undefined,
       aliases: list(form.aliases),
       categories: list(form.categories),
       tags: list(form.tags),
       description: form.description,
       power: Number(form.power),
+      toughness: Number(form.toughness),
       speed: Number(form.speed),
       range: Number(form.range),
       intelligence: Number(form.intelligence),
+      size: Number(form.size),
+      techLevel: Number(form.techLevel),
+      cosmicLevel: Number(form.cosmicLevel),
       scale: Number(form.scale),
     };
     try {
@@ -357,6 +460,10 @@ function EntryEditor({
             <input className="text-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           </label>
           <label className="editor-field">
+            <span>Engelskt namn (valfritt)</span>
+            <input className="text-input" value={form.englishName} onChange={(e) => setForm((f) => ({ ...f, englishName: e.target.value }))} />
+          </label>
+          <label className="editor-field">
             <span>Alias (kommaseparerade)</span>
             <input className="text-input" value={form.aliases} onChange={(e) => setForm((f) => ({ ...f, aliases: e.target.value }))} />
           </label>
@@ -372,7 +479,7 @@ function EntryEditor({
             <p className="editor-hint">Okända taggar (påverkar inte logiken): {unknownTags.join(', ')}</p>
           )}
           <div className="editor-stats">
-            {(['power', 'speed', 'range', 'intelligence', 'scale'] as const).map((k) => (
+            {(['power', 'toughness', 'speed', 'range', 'intelligence', 'size', 'techLevel', 'cosmicLevel', 'scale'] as const).map((k) => (
               <label key={k} className="editor-stat">
                 <span>{statLabel(k)}</span>
                 <input
@@ -405,5 +512,17 @@ function EntryEditor({
 }
 
 function statLabel(k: string): string {
-  return { power: 'Kraft', speed: 'Snabbhet', range: 'Räckvidd', intelligence: 'Intelligens', scale: 'Skala' }[k] ?? k;
+  return (
+    {
+      power: 'Kraft',
+      toughness: 'Tålighet',
+      speed: 'Snabbhet',
+      range: 'Räckvidd',
+      intelligence: 'Intelligens',
+      size: 'Storlek',
+      techLevel: 'Teknik',
+      cosmicLevel: 'Kosmisk',
+      scale: 'Skala',
+    } as Record<string, string>
+  )[k] ?? k;
 }

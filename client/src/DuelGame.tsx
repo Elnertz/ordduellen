@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { ApiError, createGame, getRandomWord, playTurn } from './api';
+import { ApiError, createGame, getRandomWord, playTurn, reportJudgment } from './api';
 import type { Difficulty, GameMode, GameState, JudgeResult, WinCondition } from './types';
 import { StatBars } from './components/StatBars';
 
@@ -324,7 +324,24 @@ function TargetCard({ game }: { game: GameState }) {
 }
 
 function VerdictFeed({ judgements }: { judgements: JudgeResult[] }) {
+  const [reported, setReported] = useState<Record<number, boolean>>({});
   if (judgements.length === 0) return null;
+
+  const report = async (j: JudgeResult, i: number) => {
+    setReported((r) => ({ ...r, [i]: true }));
+    try {
+      await reportJudgment({
+        target: j.target.name,
+        answer: j.answer.name,
+        verdict: j.verdict,
+        confidence: j.confidence,
+        reason: j.reason,
+      });
+    } catch {
+      /* best-effort; keep the UI optimistic */
+    }
+  };
+
   return (
     <section className="verdict-feed" aria-live="polite">
       {judgements.map((j, i) => (
@@ -338,6 +355,15 @@ function VerdictFeed({ judgements }: { judgements: JudgeResult[] }) {
             <span className="verdict-conf">{j.confidence}% säker</span>
           </div>
           <p className="verdict-text">{j.reason}</p>
+          <button
+            className="report-link"
+            type="button"
+            onClick={() => report(j, i)}
+            disabled={reported[i]}
+            title="Anmäl om domslutet känns fel"
+          >
+            {reported[i] ? 'Tack, domslutet är rapporterat' : 'Rapportera domslut'}
+          </button>
         </div>
       ))}
     </section>

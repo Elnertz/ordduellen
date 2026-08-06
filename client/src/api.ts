@@ -100,4 +100,39 @@ export const generateEntries = (count: number) =>
 export const validateDatabase = () =>
   request<{ ok: boolean; issues: string[]; checked: number }>('/admin/validate');
 
+export const reportJudgment = (payload: {
+  target: string;
+  answer: string;
+  verdict: 'approved' | 'rejected';
+  confidence?: number;
+  reason?: string;
+  note?: string;
+}) => request<{ ok: boolean; id: string }>('/judge/report', { method: 'POST', body: JSON.stringify(payload) });
+
+export interface JudgmentReport {
+  id: string;
+  target: string;
+  answer: string;
+  verdict: 'approved' | 'rejected';
+  confidence?: number;
+  reason?: string;
+  note?: string;
+  votesAgree: number;
+  votesDisagree: number;
+  status: 'open' | 'resolved';
+  resolution?: string;
+  createdAt: number;
+}
+
+export const getReports = (status?: 'open' | 'resolved') =>
+  request<{ stats: { total: number; open: number; resolved: number }; reports: JudgmentReport[] }>(
+    `/admin/reports${status ? `?status=${status}` : ''}`,
+  );
+
+export const resolveReport = (id: string, resolution: string) =>
+  request<{ ok: boolean }>(`/admin/reports/${id}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ resolution }),
+  });
+
 export const exportUrl = `${BASE}/admin/export`;
