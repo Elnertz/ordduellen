@@ -142,3 +142,52 @@ export interface AdminMeta {
   categories: MetaOption[];
   tags: MetaOption[];
 }
+
+// --- Online / multiplayer -------------------------------------------------
+
+export interface Player {
+  id: string;
+  name: string;
+  guest: boolean;
+  rating: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  matches: number;
+  longestChain: number;
+}
+
+export interface LeaderboardRow extends Player {
+  rank: number;
+}
+
+export interface RoomPlayerView {
+  name: string;
+  index: number;
+  connected: boolean;
+  rating: number;
+  wantsRematch: boolean;
+}
+
+export interface RoomView {
+  code: string;
+  status: 'lobby' | 'playing' | 'finished';
+  hostId: string;
+  isHost: boolean;
+  settings: { winCondition: WinCondition; targetScore: number; startWord?: string; ranked: boolean };
+  players: RoomPlayerView[];
+  youIndex: number;
+}
+
+export interface RatingDelta {
+  index: number;
+  rating: number;
+  delta: number;
+}
+
+export interface MatchResult {
+  winnerIndex: number | null;
+  ranked: boolean;
+  forfeit?: boolean;
+  ratings: RatingDelta[];
+}

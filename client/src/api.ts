@@ -136,3 +136,20 @@ export const resolveReport = (id: string, resolution: string) =>
   });
 
 export const exportUrl = `${BASE}/admin/export`;
+
+// --- Online ---------------------------------------------------------------
+
+import type { LeaderboardRow, Player } from './types';
+
+export const getLeaderboard = (me?: string, limit = 50, offset = 0) => {
+  const q = new URLSearchParams();
+  q.set('limit', String(limit));
+  q.set('offset', String(offset));
+  if (me) q.set('me', me);
+  return request<{ total: number; rows: LeaderboardRow[]; me: (LeaderboardRow | null) }>(
+    `/online/leaderboard?${q.toString()}`,
+  );
+};
+
+export const getPlayer = (id: string) =>
+  request<{ player: Player; rank: number | null }>(`/online/player/${id}`);
