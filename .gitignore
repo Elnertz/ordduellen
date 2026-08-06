@@ -7,3 +7,6 @@ coverage/
 .env.local
 .DS_Store
 .vite/
+
+# Runtime admin overrides (generated at runtime, not source)
+data/custom-entities.json
