@@ -184,6 +184,16 @@ function Menu({
             />
           </div>
         )}
+        <div className="field">
+          <label htmlFor="ostart">Startord (valfritt)</label>
+          <input
+            id="ostart"
+            className="text-input"
+            value={settings.startWord ?? ''}
+            placeholder="Slumpas om tomt"
+            onChange={(e) => setSettings({ ...settings, startWord: e.target.value })}
+          />
+        </div>
         <label className="checkbox-row">
           <input
             type="checkbox"
@@ -192,7 +202,11 @@ function Menu({
           />
           Rankad match (påverkar rating)
         </label>
-        <button className="btn primary big" type="button" onClick={() => online.createRoom(settings)}>
+        <button
+          className="btn primary big"
+          type="button"
+          onClick={() => online.createRoom({ ...settings, startWord: settings.startWord?.trim() || undefined })}
+        >
           Skapa rum
         </button>
       </section>
