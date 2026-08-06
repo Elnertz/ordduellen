@@ -181,7 +181,7 @@ export function generateEntries(): Entry[] {
   const usedIds = new Set<string>();
 
   const assignId = (entry: Entry): void => {
-    let base = slugify(entry.name) || 'entry';
+    const base = slugify(entry.name) || 'entry';
     let id = base;
     let n = 2;
     while (usedIds.has(id)) {
