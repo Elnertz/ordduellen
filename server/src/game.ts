@@ -233,6 +233,35 @@ export class GameManager {
     return result;
   }
 
+  // Forfeit the current player's turn (e.g. timeout in online play): record a
+  // rejected "timeout" link and pass the turn without changing the score.
+  forfeitTurn(id: string): TurnResult {
+    const game = this.games.get(id);
+    if (!game) throw new GameNotFoundError(id);
+    if (game.status !== 'playing') {
+      return { ok: false, error: 'Spelet är avslutat.', judgements: [], state: publicState(game) };
+    }
+    const playerIndex = game.currentPlayerIndex;
+    const player = game.players[playerIndex];
+    game.stats.turns += 1;
+    game.stats.rejections += 1;
+    game.currentChainRun = 0;
+    game.chain.unshift({
+      turn: game.stats.turns,
+      playerIndex,
+      playerName: player.name,
+      fromTarget: game.target.name,
+      word: '',
+      verdict: 'rejected',
+      confidence: 0,
+      explanation: 'Tiden gick ut – turen går vidare.',
+      matchType: 'timeout',
+      awardedPoint: false,
+    });
+    game.currentPlayerIndex = (game.currentPlayerIndex + 1) % game.players.length;
+    return { ok: true, judgements: [], state: publicState(game) };
+  }
+
   // Choose a word for the computer that beats the current target.
   private chooseAiWord(game: InternalGame): string {
     const target = game.targetEntry;
