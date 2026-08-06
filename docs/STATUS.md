@@ -68,12 +68,19 @@ klart när den påbörjas.
   `notifications`, `admin_audit_log`.
 - **Kräver externa uppgifter** (se avsnitt 4).
 
-### Fas 3 – privata rum, vänner, snabbmatch, reconnect, matchhistorik
-- WebSockets/Realtime, match rooms, presence, idempotenta drag, server timestamps,
-  timeout per tur, forfeit, anti-cheat.
+### Fas 3 – privata rum, snabbmatch, reconnect (KLART, självhostat)
+- Serverauktoritativt realtidsläge över **WebSockets** (`server/src/realtime.ts`):
+  privata rum med rumskod + delningslänk, snabbmatch, presence, återanslutning,
+  timeout per tur, forfeit, idempotenta drag (server räknar poäng/tur/vinnare).
+- Klient: fliken **Online** (namn/gäst, snabbmatch, skapa/gå med i rum, live-duell,
+  revansch, återanslutning). Kvar för produktion: publik host + domän för spel mellan
+  olika enheter (se avsnitt 4).
 
-### Fas 4 – ranking, topplistor, XP, prestationer, daglig utmaning
-- Elo-baserad rating, säsonger, serverberäknade och cachade topplistor, progressionssystem.
+### Fas 4 – ranking och topplistor (KLART, självhostat)
+- **Elo-rating** (`server/src/elo.ts`) och en persistent spelarstore
+  (`server/src/store.ts`); serverberäknad, paginerad **topplista** med egen placering
+  (`/api/online/leaderboard`, fliken **Topplista**). Kvar: säsonger, XP/prestationer,
+  daglig utmaning, cachning i skala.
 
 ### Fas 5 – iOS-app, push, deep links, App Store
 - **Capacitor** rekommenderas: den nuvarande React/Vite-frontenden kan återanvändas i
