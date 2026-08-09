@@ -129,8 +129,11 @@ export function useOnline(): OnlineApi {
     if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
       return;
     }
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    const apiBase = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
+    const wsUrl = apiBase
+      ? `${apiBase.replace(/^http/, 'ws')}/ws`
+      : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
     setConnection((c) => (c === 'connected' ? 'reconnecting' : 'connecting'));
 

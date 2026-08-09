@@ -9,7 +9,10 @@ import type {
   WinCondition,
 } from './types';
 
-const BASE = '/api';
+// Same-origin by default (web). For a packaged native app, set VITE_API_BASE
+// at build time to the absolute URL of the deployed backend.
+export const API_ORIGIN = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
+const BASE = `${API_ORIGIN}/api`;
 
 export class ApiError extends Error {
   constructor(
@@ -135,7 +138,7 @@ export const resolveReport = (id: string, resolution: string) =>
     body: JSON.stringify({ resolution }),
   });
 
-export const exportUrl = `${BASE}/admin/export`;
+export const exportUrl = `${API_ORIGIN}/api/admin/export`;
 
 // --- Online ---------------------------------------------------------------
 
