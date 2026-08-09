@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { DEFAULT_RATING, applyMatch, type Outcome } from './elo.js';
+import { dateKey, levelFromXp, updateStreak, type StreakUpdate } from './progression.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = resolve(__dirname, '../../data');
@@ -21,8 +22,23 @@ export interface Player {
   draws: number;
   matches: number;
   longestChain: number;
+  xp: number;
+  level: number;
+  streakCurrent: number;
+  streakLongest: number;
+  streakLastDate: string | null;
+  streakMilestones: number[];
   createdAt: number;
   lastActive: number;
+}
+
+export interface DailyResult {
+  playerId: string;
+  name: string;
+  score: number;
+  chainLength: number;
+  date: string;
+  at: number;
 }
 
 export interface MatchRecord {
@@ -41,6 +57,15 @@ interface StoreShape {
   version: number;
   players: Record<string, Player>;
   matches: MatchRecord[];
+  dailyResults: Record<string, Record<string, DailyResult>>;
+}
+
+export interface ActivityResult {
+  player: Player;
+  xpGained: number;
+  leveledUp: boolean;
+  fromLevel: number;
+  streak: StreakUpdate;
 }
 
 export interface LeaderboardRow extends Player {
@@ -83,6 +108,12 @@ export class Store {
       draws: 0,
       matches: 0,
       longestChain: 0,
+      xp: 0,
+      level: 1,
+      streakCurrent: 0,
+      streakLongest: 0,
+      streakLastDate: null,
+      streakMilestones: [],
       createdAt: now,
       lastActive: now,
     };
@@ -177,6 +208,48 @@ export class Store {
     return record;
   }
 
+  /** Award XP and bump the daily streak for a qualifying activity. */
+  awardActivity(id: string, xpGain: number, day: string = dateKey()): ActivityResult | null {
+    const p = this.data.players[id];
+    if (!p) return null;
+    const fromLevel = p.level;
+    p.xp += Math.max(0, Math.round(xpGain));
+    p.level = levelFromXp(p.xp);
+    const streak = updateStreak(
+      { current: p.streakCurrent, longest: p.streakLongest, lastDate: p.streakLastDate, milestones: p.streakMilestones },
+      day,
+    );
+    p.streakCurrent = streak.current;
+    p.streakLongest = streak.longest;
+    p.streakLastDate = streak.lastDate;
+    p.streakMilestones = streak.milestones;
+    p.lastActive = Date.now();
+    this.persist();
+    return { player: p, xpGained: Math.max(0, Math.round(xpGain)), leveledUp: p.level > fromLevel, fromLevel, streak };
+  }
+
+  recordDailyResult(result: DailyResult): DailyResult {
+    const day = (this.data.dailyResults[result.date] ??= {});
+    const existing = day[result.playerId];
+    if (!existing || result.score > existing.score) day[result.playerId] = result;
+    this.persist();
+    return day[result.playerId];
+  }
+
+  getDailyResult(date: string, playerId: string): DailyResult | undefined {
+    return this.data.dailyResults[date]?.[playerId];
+  }
+
+  dailyLeaderboard(date: string, limit = 50): { total: number; rows: Array<DailyResult & { rank: number }> } {
+    const all = Object.values(this.data.dailyResults[date] ?? {}).sort(
+      (a, b) => b.score - a.score || b.chainLength - a.chainLength || a.at - b.at,
+    );
+    return {
+      total: all.length,
+      rows: all.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 })),
+    };
+  }
+
   leaderboard(limit = 50, offset = 0): { total: number; rows: LeaderboardRow[] } {
     const ranked = Object.values(this.data.players)
       .filter((p) => p.matches > 0)
@@ -218,16 +291,44 @@ function sanitizeName(name: string): string {
 
 function load(path: string): StoreShape {
   try {
-    if (!existsSync(path)) return { version: 1, players: {}, matches: [] };
+    if (!existsSync(path)) return { version: 1, players: {}, matches: [], dailyResults: {} };
     const parsed = JSON.parse(readFileSync(path, 'utf8')) as StoreShape;
+    const players: Record<string, Player> = {};
+    for (const [id, p] of Object.entries(parsed.players ?? {})) {
+      players[id] = normalizePlayer(p as Partial<Player> & { id: string });
+    }
     return {
       version: parsed.version ?? 1,
-      players: parsed.players ?? {},
+      players,
       matches: Array.isArray(parsed.matches) ? parsed.matches : [],
+      dailyResults: parsed.dailyResults ?? {},
     };
   } catch {
-    return { version: 1, players: {}, matches: [] };
+    return { version: 1, players: {}, matches: [], dailyResults: {} };
   }
+}
+
+// Backfill fields added after a player was first stored.
+function normalizePlayer(p: Partial<Player> & { id: string }): Player {
+  return {
+    id: p.id,
+    name: p.name ?? 'Spelare',
+    guest: p.guest ?? true,
+    rating: p.rating ?? DEFAULT_RATING,
+    wins: p.wins ?? 0,
+    losses: p.losses ?? 0,
+    draws: p.draws ?? 0,
+    matches: p.matches ?? 0,
+    longestChain: p.longestChain ?? 0,
+    xp: p.xp ?? 0,
+    level: p.level ?? 1,
+    streakCurrent: p.streakCurrent ?? 0,
+    streakLongest: p.streakLongest ?? 0,
+    streakLastDate: p.streakLastDate ?? null,
+    streakMilestones: p.streakMilestones ?? [],
+    createdAt: p.createdAt ?? Date.now(),
+    lastActive: p.lastActive ?? Date.now(),
+  };
 }
 
 let cached: Store | null = null;

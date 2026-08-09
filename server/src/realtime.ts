@@ -6,8 +6,9 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
 import { Database } from './database.js';
-import { GameManager, GameNotFoundError, type WinCondition } from './game.js';
+import { GameManager, GameNotFoundError, type WinCondition, type ChainLink } from './game.js';
 import { Store } from './store.js';
+import { getReplayStore, type ReplayMove } from './replays.js';
 
 const TURN_MS = 60_000;
 const DISCONNECT_GRACE_MS = 45_000;
@@ -158,16 +159,41 @@ export function attachRealtime(server: Server, db: Database, store: Store): void
       a: store.getPlayer(a.playerId)?.rating ?? before.a,
       b: store.getPlayer(b?.playerId)?.rating ?? before.b,
     };
+    // Award XP + daily streak, and store a shareable replay.
+    const activities: Record<string, ReturnType<Store['awardActivity']>> = {};
+    if (a && b) {
+      activities[a.playerId] = store.awardActivity(a.playerId, state.winner === 0 ? 30 : 15);
+      activities[b.playerId] = store.awardActivity(b.playerId, state.winner === 1 ? 30 : 15);
+    }
+    const replay = getReplayStore().create({
+      mode: 'online',
+      players: state.players.map((p) => p.name),
+      scores: state.players.map((p) => p.score),
+      winnerIndex: state.winner,
+      chain: toReplayChain(state.chain),
+      visibility: 'link',
+    });
     for (const p of room.players) {
+      const act = activities[p.playerId];
       sendToPlayer(p.playerId, {
         type: 'match_over',
         state,
         winnerIndex: state.winner,
         ranked: room.settings.ranked,
+        replayId: replay.id,
         ratings: [
           { index: 0, rating: after.a, delta: after.a - before.a },
           { index: 1, rating: after.b, delta: after.b - before.b },
         ],
+        progression: act
+          ? {
+              xpGained: act.xpGained,
+              level: act.player.level,
+              leveledUp: act.leveledUp,
+              streak: act.player.streakCurrent,
+              newMilestones: act.streak.newMilestones,
+            }
+          : null,
       });
     }
   };
@@ -519,6 +545,21 @@ export function attachRealtime(server: Server, db: Database, store: Store): void
 
   // eslint-disable-next-line no-console
   console.log('[ordduellen] Realtime (WebSocket) redo på /ws');
+}
+
+function toReplayChain(chain: ChainLink[]): ReplayMove[] {
+  return [...chain]
+    .reverse()
+    .map((l) => ({
+      turn: l.turn,
+      playerName: l.playerName,
+      fromTarget: l.fromTarget,
+      word: l.word,
+      verdict: l.verdict,
+      confidence: l.confidence,
+      explanation: l.explanation,
+      awardedPoint: l.awardedPoint,
+    }));
 }
 
 function readSettings(raw: unknown): RoomSettings {

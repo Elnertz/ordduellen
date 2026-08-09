@@ -10,6 +10,7 @@ import { getStore } from './store.js';
 import { createGameRouter } from './routes/game.js';
 import { createAdminRouter } from './routes/admin.js';
 import { createOnlineRouter } from './routes/online.js';
+import { createDailyRouter } from './routes/daily.js';
 import { attachRealtime } from './realtime.js';
 
 const PORT = Number(process.env.PORT ?? 4000);
@@ -48,6 +49,7 @@ function main(): void {
   app.use('/api', createGameRouter(db, manager));
   app.use('/api/admin', createAdminRouter(db));
   app.use('/api/online', createOnlineRouter(store));
+  app.use('/api', createDailyRouter(store));
 
   // Production / single-origin: serve the built web client and let client-side
   // routing fall back to index.html (API and WS paths are excluded).
