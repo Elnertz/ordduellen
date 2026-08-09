@@ -1,0 +1,20 @@
+{
+  "name": "Ordduellen",
+  "install": "npm install",
+  "terminals": [
+    {
+      "name": "api",
+      "command": "npm run dev:server",
+      "description": "Ordduellen backend API (Express + TypeScript) on http://localhost:4000"
+    },
+    {
+      "name": "web",
+      "command": "npm run dev:client",
+      "description": "Ordduellen web client (Vite + React) on http://localhost:5173, proxies /api to the backend"
+    }
+  ],
+  "ports": [
+    { "name": "api", "port": 4000 },
+    { "name": "web", "port": 5173 }
+  ]
+}

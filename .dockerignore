@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.github
+*.log
+data/custom-entities.json
+data/judgment-reports.json
+data/online-store.json
+ios
+android
+.DS_Store

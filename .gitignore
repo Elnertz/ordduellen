@@ -1,0 +1,22 @@
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.env
+.env.local
+.DS_Store
+.vite/
+
+# Capacitor native projects (generated per machine)
+client/ios/
+client/android/
+.env
+.env.*
+!.env.example
+
+# Runtime admin overrides / reports / online store (generated at runtime, not source)
+data/custom-entities.json
+data/judgment-reports.json
+data/online-store.json
+data/replays.json
