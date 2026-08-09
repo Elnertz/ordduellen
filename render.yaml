@@ -1,0 +1,14 @@
+# One-click deploy config for Render (https://render.com).
+# In Render: New + → Blueprint → point at this repo → it reads this file.
+# Gives a public https URL you can share with friends. Free plan works.
+services:
+  - type: web
+    name: ordduellen
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
